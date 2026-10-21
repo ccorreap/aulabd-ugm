@@ -9,18 +9,20 @@ import {
   LogOut, 
   Sparkles, 
   UserCircle2, 
-  CheckCircle2,
-  BookOpen
+  BookOpen,
+  FolderGit2,
+  HelpCircle
 } from 'lucide-react';
 
 interface NavbarProps {
-  activeTab: 'clase1' | 'roadmap' | 'docente';
-  setActiveTab: (tab: 'clase1' | 'roadmap' | 'docente') => void;
+  activeTab: 'clase1' | 'clase2' | 'docente';
+  setActiveTab: (tab: 'clase1' | 'clase2' | 'docente') => void;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab }) => {
   const { user, logout } = useAuth();
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const [showXpHelp, setShowXpHelp] = useState(false);
 
   return (
     <>
@@ -38,20 +40,20 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab }) => {
                     AulaBD <span className="text-blue-600">UGM</span>
                   </span>
                   <span className="hidden sm:inline-block rounded-md bg-blue-50 px-2 py-0.5 text-[11px] font-semibold text-blue-700 border border-blue-200/60">
-                    Cátedra Nº 2
+                    Cátedra Nº 2 y 3
                   </span>
                 </div>
                 <p className="text-[11px] text-slate-500 hidden md:block">
-                  Ing. en Computación e Informática • Docente: Mag. Cristian Correa
+                  Ing. en Computación e Informática • Docente: Mag. Cristian Correa Pacheco
                 </p>
               </div>
             </div>
 
-            {/* Navigation Tabs */}
+            {/* Navigation Tabs (Clase 1, Clase 2, Panel Docente) */}
             <nav className="flex items-center gap-1 sm:gap-2">
               <button
                 onClick={() => setActiveTab('clase1')}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium transition ${
+                className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs sm:text-sm font-medium transition ${
                   activeTab === 'clase1'
                     ? 'bg-blue-600 text-white shadow-sm'
                     : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
@@ -62,28 +64,28 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab }) => {
               </button>
 
               <button
-                onClick={() => setActiveTab('roadmap')}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium transition ${
-                  activeTab === 'roadmap'
+                onClick={() => setActiveTab('clase2')}
+                className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs sm:text-sm font-medium transition ${
+                  activeTab === 'clase2'
                     ? 'bg-blue-600 text-white shadow-sm'
                     : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
                 }`}
               >
-                <CheckCircle2 className="h-4 w-4" />
-                <span>Plan de Estudio</span>
+                <FolderGit2 className="h-4 w-4" />
+                <span>Clase 2</span>
               </button>
 
               {user?.role === 'teacher' && (
                 <button
                   onClick={() => setActiveTab('docente')}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium transition ${
+                  className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs sm:text-sm font-medium transition ${
                     activeTab === 'docente'
                       ? 'bg-indigo-600 text-white shadow-sm'
                       : 'text-indigo-600 hover:text-indigo-800 hover:bg-indigo-50'
                   }`}
                 >
                   <GraduationCap className="h-4 w-4" />
-                  <span>Panel Docente</span>
+                  <span>Panel Docente y Nómina</span>
                 </button>
               )}
             </nav>
@@ -92,10 +94,29 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab }) => {
             <div className="flex items-center gap-3">
               {user ? (
                 <div className="flex items-center gap-2 sm:gap-3">
-                  {/* XP Badge */}
-                  <div className="hidden sm:flex items-center gap-1 rounded-full bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-700 border border-amber-200">
-                    <Sparkles className="h-3.5 w-3.5 text-amber-500 fill-amber-500" />
-                    <span>{user.xp} XP</span>
+                  {/* XP Badge with Help Explanation */}
+                  <div className="relative">
+                    <button
+                      onClick={() => setShowXpHelp(!showXpHelp)}
+                      className="flex items-center gap-1.5 rounded-full bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-700 border border-amber-200 hover:bg-amber-100 transition"
+                      title="Haz clic para ver qué son los puntos XP"
+                    >
+                      <Sparkles className="h-3.5 w-3.5 text-amber-500 fill-amber-500" />
+                      <span>{user.xp} XP</span>
+                      <HelpCircle className="h-3 w-3 text-amber-600 opacity-60" />
+                    </button>
+
+                    {showXpHelp && (
+                      <div className="absolute right-0 top-9 z-50 w-64 rounded-xl bg-slate-900 text-white p-3 text-xs shadow-xl border border-slate-700 animate-fadeIn">
+                        <div className="flex items-center justify-between pb-1 border-b border-slate-700">
+                          <span className="font-bold text-amber-400">¿Qué son los XP?</span>
+                          <button onClick={() => setShowXpHelp(false)} className="text-slate-400 hover:text-white">✕</button>
+                        </div>
+                        <p className="mt-1.5 text-slate-300 leading-relaxed">
+                          <strong>XP = Puntos de Experiencia.</strong> Es un indicador lúdico: cada vez que completas un ejercicio práctico o aciertas preguntas, sumas puntos para validar tu constancia de estudio.
+                        </p>
+                      </div>
+                    )}
                   </div>
 
                   {/* Profile info */}
@@ -103,8 +124,8 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab }) => {
                     <p className="text-xs font-bold text-slate-800 leading-tight">
                       {user.name}
                     </p>
-                    <p className="text-[10px] text-slate-400">
-                      {user.role === 'teacher' ? 'Docente UGM' : 'Alumno UGM'}
+                    <p className="text-[10px] text-slate-400 font-mono">
+                      {user.email}
                     </p>
                   </div>
 

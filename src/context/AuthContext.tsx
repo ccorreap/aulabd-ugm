@@ -2,93 +2,116 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { UserProfile } from '@/types';
+import { INITIAL_STUDENTS, StudentUser, TEACHER_OFFICIAL_EMAIL } from '@/data/students';
 
 interface AuthContextType {
   user: UserProfile | null;
-  login: (email: string, name?: string, role?: 'student' | 'teacher') => { success: boolean; error?: string };
+  studentsList: StudentUser[];
+  login: (email: string) => { success: boolean; error?: string };
   logout: () => void;
   addXp: (points: number, activityId: string) => void;
-  loginAsDemo: (type: 'teacher' | 'student') => void;
+  loginAsTeacher: () => void;
+  loginAsStudent: (studentEmail?: string) => void;
+  addStudent: (student: Omit<StudentUser, 'id'>) => void;
+  removeStudent: (id: string) => void;
+  updateStudent: (student: StudentUser) => void;
 }
 
 const DEFAULT_TEACHER: UserProfile = {
   name: 'Mag. Cristian Correa Pacheco',
-  email: 'cristian.correa@ugm.cl',
+  email: TEACHER_OFFICIAL_EMAIL.toLowerCase(),
   avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
   role: 'teacher',
   career: 'Ingeniería en Computación e Informática',
   university: 'Universidad Gabriela Mistral',
-  xp: 1200,
-  completedActivities: ['act-excel-1', 'act-types-1', 'act-flashcards-1']
-};
-
-const DEFAULT_STUDENT: UserProfile = {
-  name: 'Estudiante UGM',
-  email: 'alumno.informatica@alumnos.ugm.cl',
-  avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80',
-  role: 'student',
-  career: 'Ingeniería en Computación e Informática',
-  university: 'Universidad Gabriela Mistral',
-  xp: 150,
-  completedActivities: []
+  xp: 1500,
+  completedActivities: ['act-excel-complete', 'act-types-complete']
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<UserProfile | null>(null);
+  const [studentsList, setStudentsList] = useState<StudentUser[]>(INITIAL_STUDENTS);
 
+  // Load students and active user from localStorage
   useEffect(() => {
-    const saved = localStorage.getItem('aula_bdd_user');
-    if (saved) {
+    const savedStudents = localStorage.getItem('aula_bdd_students');
+    if (savedStudents) {
       try {
-        setUser(JSON.parse(saved));
+        setStudentsList(JSON.parse(savedStudents));
+      } catch {
+        setStudentsList(INITIAL_STUDENTS);
+      }
+    } else {
+      localStorage.setItem('aula_bdd_students', JSON.stringify(INITIAL_STUDENTS));
+    }
+
+    const savedUser = localStorage.getItem('aula_bdd_user');
+    if (savedUser) {
+      try {
+        setUser(JSON.parse(savedUser));
       } catch {
         localStorage.removeItem('aula_bdd_user');
       }
     } else {
-      // By default start with demo student logged in for easy review
-      setUser(DEFAULT_STUDENT);
-      localStorage.setItem('aula_bdd_user', JSON.stringify(DEFAULT_STUDENT));
+      // By default start with Professor Cristian Correa logged in for immediate review
+      setUser(DEFAULT_TEACHER);
+      localStorage.setItem('aula_bdd_user', JSON.stringify(DEFAULT_TEACHER));
     }
   }, []);
 
-  const login = (email: string, name?: string, role: 'student' | 'teacher' = 'student') => {
-    const lowerEmail = email.trim().toLowerCase();
-    
-    // Check institutional email domains or permit common test email
-    const isUgm = lowerEmail.endsWith('@ugm.cl') || lowerEmail.endsWith('@alumnos.ugm.cl') || lowerEmail.includes('ugm');
-    
-    if (!isUgm && !lowerEmail.endsWith('@gmail.com') && !lowerEmail.includes('@')) {
-      return { 
-        success: false, 
-        error: 'Por favor ingresa un correo institucional válido (@ugm.cl o @alumnos.ugm.cl)' 
+  const saveStudents = (newStudents: StudentUser[]) => {
+    setStudentsList(newStudents);
+    localStorage.setItem('aula_bdd_students', JSON.stringify(newStudents));
+  };
+
+  const login = (email: string) => {
+    const trimmed = email.trim().toLowerCase();
+    const teacherLower = TEACHER_OFFICIAL_EMAIL.toLowerCase();
+
+    // Check if Teacher
+    if (trimmed === teacherLower) {
+      setUser(DEFAULT_TEACHER);
+      localStorage.setItem('aula_bdd_user', JSON.stringify(DEFAULT_TEACHER));
+      return { success: true };
+    }
+
+    // Check if in student roster
+    const student = studentsList.find((s) => s.email.toLowerCase() === trimmed);
+    if (!student) {
+      return {
+        success: false,
+        error: `El correo "${email}" no está registrado en la nómina oficial de la asignatura. Contacta al docente Mag. Cristian Correa.`
       };
     }
 
-    const calculatedRole = lowerEmail.includes('alumnos') ? 'student' : (role || 'student');
-    const profileName = name || (lowerEmail.split('@')[0].replace('.', ' ').toUpperCase());
-
-    const newUser: UserProfile = {
-      name: profileName,
-      email: lowerEmail,
-      avatar: calculatedRole === 'teacher' ? DEFAULT_TEACHER.avatar : DEFAULT_STUDENT.avatar,
-      role: calculatedRole,
-      career: 'Ingeniería en Computación e Informática',
+    const studentProfile: UserProfile = {
+      name: student.fullName,
+      email: student.email,
+      avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80',
+      role: 'student',
+      career: student.career,
       university: 'Universidad Gabriela Mistral',
-      xp: 50,
+      xp: 100,
       completedActivities: []
     };
 
-    setUser(newUser);
-    localStorage.setItem('aula_bdd_user', JSON.stringify(newUser));
+    setUser(studentProfile);
+    localStorage.setItem('aula_bdd_user', JSON.stringify(studentProfile));
     return { success: true };
   };
 
-  const loginAsDemo = (type: 'teacher' | 'student') => {
-    const selected = type === 'teacher' ? DEFAULT_TEACHER : DEFAULT_STUDENT;
-    setUser(selected);
-    localStorage.setItem('aula_bdd_user', JSON.stringify(selected));
+  const loginAsTeacher = () => {
+    setUser(DEFAULT_TEACHER);
+    localStorage.setItem('aula_bdd_user', JSON.stringify(DEFAULT_TEACHER));
+  };
+
+  const loginAsStudent = (studentEmail?: string) => {
+    const targetEmail = studentEmail || studentsList[0]?.email;
+    if (targetEmail) {
+      login(targetEmail);
+    }
   };
 
   const logout = () => {
@@ -98,7 +121,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const addXp = (points: number, activityId: string) => {
     if (!user) return;
-    if (user.completedActivities.includes(activityId)) return; // Already completed
+    if (user.completedActivities.includes(activityId)) return;
 
     const updatedUser: UserProfile = {
       ...user,
@@ -109,8 +132,40 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     localStorage.setItem('aula_bdd_user', JSON.stringify(updatedUser));
   };
 
+  const addStudent = (studentData: Omit<StudentUser, 'id'>) => {
+    const newStudent: StudentUser = {
+      ...studentData,
+      id: Date.now().toString()
+    };
+    const updated = [newStudent, ...studentsList];
+    saveStudents(updated);
+  };
+
+  const removeStudent = (id: string) => {
+    const updated = studentsList.filter((s) => s.id !== id);
+    saveStudents(updated);
+  };
+
+  const updateStudent = (student: StudentUser) => {
+    const updated = studentsList.map((s) => (s.id === student.id ? student : s));
+    saveStudents(updated);
+  };
+
   return (
-    <AuthContext.Provider value={{ user, login, logout, addXp, loginAsDemo }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        studentsList,
+        login,
+        logout,
+        addXp,
+        loginAsTeacher,
+        loginAsStudent,
+        addStudent,
+        removeStudent,
+        updateStudent
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );

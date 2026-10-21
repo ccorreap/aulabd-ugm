@@ -1,175 +1,283 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import { useAuth } from '@/context/AuthContext';
+import { StudentUser } from '@/data/students';
 import { 
   Users, 
-  BarChart3, 
+  UserPlus, 
+  Trash2, 
+  Search, 
+  GraduationCap, 
+  Download, 
   AlertTriangle, 
   CheckCircle, 
-  GraduationCap, 
-  Download,
-  Lightbulb,
-  School
+  Lightbulb, 
+  Mail, 
+  School,
+  X
 } from 'lucide-react';
 
 export const TeacherDashboard: React.FC = () => {
-  const { user } = useAuth();
+  const { user, studentsList, addStudent, removeStudent } = useAuth();
+  const [searchTerm, setSearchTerm] = useState('');
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
 
-  const mockStudents = [
-    { name: 'Matías Silva Araya', email: 'matias.silva@alumnos.ugm.cl', score: 95, status: 'Completado', time: 'hace 2 horas' },
-    { name: 'Francisca Valenzuela', email: 'francisca.v@alumnos.ugm.cl', score: 88, status: 'Completado', time: 'hace 4 horas' },
-    { name: 'Joaquín Morales Rojas', email: 'j.morales@alumnos.ugm.cl', score: 72, status: 'En Progreso', time: 'hace 1 día' },
-    { name: 'Camila González Soto', email: 'c.gonzalez@alumnos.ugm.cl', score: 90, status: 'Completado', time: 'hace 1 día' },
-    { name: 'Sebastián Tapia Vega', email: 's.tapia@alumnos.ugm.cl', score: 65, status: 'En Progreso', time: 'hace 2 días' },
-    { name: 'Valentina Muñoz Castro', email: 'v.munoz@alumnos.ugm.cl', score: 100, status: 'Completado', time: 'hace 3 días' }
-  ];
+  // New student form state
+  const [newLastName, setNewLastName] = useState('');
+  const [newFirstName, setNewFirstName] = useState('');
+  const [newEmail, setNewEmail] = useState('');
 
-  const diagnosticAlerts = [
-    {
-      title: 'Confusión común: BOOLEAN vs BIT en SQL Server',
-      desc: 'El 58% de los alumnos intentó seleccionar BOOLEAN en lugar de BIT para el campo EsActivo.',
-      recommendation: 'Reforzar en los primeros 5 minutos de la Clase 2 que Microsoft SQL Server usa BIT (1/0/NULL).',
-      severity: 'warning'
-    },
-    {
-      title: 'Excelente dominio en Claves Primarias (PK)',
-      desc: 'El 92% de los estudiantes identificó correctamente el campo Código como identificador unívoco en el laboratorio de Excel.',
-      recommendation: 'Están listos para avanzar a relaciones 1:N y claves foráneas (FK).',
-      severity: 'success'
-    }
-  ];
+  const filteredStudents = studentsList.filter(
+    (s) =>
+      s.fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      s.email.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  const handleAddSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newLastName || !newFirstName || !newEmail) return;
+
+    addStudent({
+      lastName: newLastName.toUpperCase(),
+      firstName: newFirstName.toUpperCase(),
+      fullName: `${newFirstName.toUpperCase()} ${newLastName.toUpperCase()}`,
+      email: newEmail.toLowerCase().trim(),
+      career: 'Ingeniería en Computación e Informática',
+      enrolledAt: new Date().toISOString().split('T')[0],
+      status: 'Activo'
+    });
+
+    setNewLastName('');
+    setNewFirstName('');
+    setNewEmail('');
+    setIsAddModalOpen(false);
+  };
+
+  const handleExportCsv = () => {
+    const headers = 'Apellido,Nombre,Nombre de usuario,Estado\n';
+    const rows = studentsList
+      .map((s) => `"${s.lastName}","${s.firstName}","${s.email}","${s.status}"`)
+      .join('\n');
+    const blob = new Blob([headers + rows], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', `nomina_alumnos_ugm_${new Date().toISOString().split('T')[0]}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
 
   return (
-    <div className="space-y-6 max-w-6xl mx-auto py-2">
+    <div className="space-y-6 max-w-7xl mx-auto py-2">
       {/* Top Banner */}
       <div className="rounded-2xl border border-slate-200 bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white p-6 sm:p-8 shadow-xl">
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div>
             <div className="inline-flex items-center gap-1.5 rounded-full bg-indigo-500/20 px-3 py-1 text-xs font-semibold text-indigo-300 border border-indigo-400/30">
               <GraduationCap className="h-4 w-4" />
-              Vista Exclusiva del Docente
+              Gestión Docente Exclusiva
             </div>
             <h2 className="text-2xl font-bold tracking-tight mt-2">
-              Panel de Analítica y Diagnóstico de la Cátedra
+              Panel de Control y Mantenedor de Alumnos
             </h2>
             <p className="text-xs sm:text-sm text-slate-300 mt-1">
-              Docente: {user?.name || 'Mag. Cristian Correa Pacheco'} • Universidad Gabriela Mistral
+              Docente: <strong>{user?.name || 'Mag. Cristian Correa Pacheco'}</strong> • {user?.email}
             </p>
           </div>
 
-          <button
-            onClick={() => alert('Generando informe consolidado en formato CSV / Excel...')}
-            className="flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2.5 text-xs font-semibold text-white hover:bg-indigo-500 shadow-md transition"
-          >
-            <Download className="h-4 w-4" />
-            <span>Descargar Reporte del Curso</span>
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setIsAddModalOpen(true)}
+              className="flex items-center gap-1.5 rounded-xl bg-blue-600 px-3.5 py-2 text-xs font-semibold text-white hover:bg-blue-500 shadow-md transition"
+            >
+              <UserPlus className="h-4 w-4" />
+              <span>Matricular Alumno</span>
+            </button>
+
+            <button
+              onClick={handleExportCsv}
+              className="flex items-center gap-1.5 rounded-xl bg-indigo-600 px-3.5 py-2 text-xs font-semibold text-white hover:bg-indigo-500 shadow-md transition"
+            >
+              <Download className="h-4 w-4" />
+              <span>Exportar Nómina CSV</span>
+            </button>
+          </div>
         </div>
 
-        {/* Quick Stats Grid */}
+        {/* Course Summary Metrics */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6 pt-6 border-t border-slate-800">
           <div>
-            <p className="text-xs text-slate-400">Alumnos Activos</p>
-            <p className="text-2xl font-bold text-white mt-0.5">38 / 42</p>
+            <p className="text-xs text-slate-400">Total Alumnos Nómina</p>
+            <p className="text-2xl font-bold text-white mt-0.5">{studentsList.length} Estudiantes</p>
           </div>
           <div>
-            <p className="text-xs text-slate-400">Tasa de Finalización Clase 1</p>
-            <p className="text-2xl font-bold text-emerald-400 mt-0.5">84%</p>
+            <p className="text-xs text-slate-400">Dominio Permitido</p>
+            <p className="text-sm font-bold text-emerald-400 mt-1 font-mono">@estudiante.ugm.cl</p>
           </div>
           <div>
-            <p className="text-xs text-slate-400">Promedio de Aciertos Tipos</p>
-            <p className="text-2xl font-bold text-indigo-400 mt-0.5">4.2 / 5.0</p>
+            <p className="text-xs text-slate-400">Cátedras Habilitadas</p>
+            <p className="text-2xl font-bold text-indigo-400 mt-0.5">Clase 1 y 2</p>
           </div>
           <div>
-            <p className="text-xs text-slate-400">Tiempo Medio de Práctica</p>
-            <p className="text-2xl font-bold text-amber-400 mt-0.5">18 min</p>
+            <p className="text-xs text-slate-400">Taller Evaluativo</p>
+            <p className="text-sm font-bold text-amber-400 mt-1">20% (Entrega 28/03)</p>
           </div>
         </div>
       </div>
 
-      {/* Pedagogical Insights / Alerts for the Professor */}
-      <div className="space-y-3">
-        <h3 className="text-sm font-bold uppercase tracking-wider text-slate-500 flex items-center gap-2">
-          <Lightbulb className="h-4 w-4 text-amber-500" />
-          <span>Diagnóstico Pedagógico Automático</span>
-        </h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {diagnosticAlerts.map((alert, idx) => (
-            <div
-              key={idx}
-              className={`rounded-2xl border p-4 text-xs sm:text-sm ${
-                alert.severity === 'warning'
-                  ? 'border-amber-200 bg-amber-50/70 text-amber-900'
-                  : 'border-emerald-200 bg-emerald-50/70 text-emerald-900'
-              }`}
-            >
-              <div className="flex items-center gap-2 font-bold mb-1">
-                {alert.severity === 'warning' ? (
-                  <AlertTriangle className="h-4 w-4 text-amber-600 shrink-0" />
-                ) : (
-                  <CheckCircle className="h-4 w-4 text-emerald-600 shrink-0" />
-                )}
-                <span>{alert.title}</span>
-              </div>
-              <p className="text-slate-700 leading-relaxed mb-2">{alert.desc}</p>
-              <div className="rounded-lg bg-white/70 p-2 text-xs font-medium border border-black/5">
-                💡 <strong>Sugerencia para tu próxima clase:</strong> {alert.recommendation}
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Students Table */}
+      {/* Main Student Mantainer (Table + Search + Delete) */}
       <div className="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
-        <div className="border-b border-slate-100 p-4 sm:p-5 flex items-center justify-between">
+        <div className="border-b border-slate-100 p-4 sm:p-5 flex flex-wrap items-center justify-between gap-4">
           <div>
-            <h3 className="font-bold text-slate-800 text-sm sm:text-base">
-              Progreso Individual de Alumnos (Correo Institucional)
+            <h3 className="font-bold text-slate-800 text-base flex items-center gap-2">
+              <Users className="h-5 w-5 text-blue-600" />
+              <span>Mantenedor de Alumnos Matriculados ({studentsList.length})</span>
             </h3>
-            <p className="text-xs text-slate-500">
-              Estudiantes registrados con dominio @alumnos.ugm.cl
+            <p className="text-xs text-slate-500 mt-0.5">
+              Solo los alumnos en este listado tienen acceso habilitado para ingresar con su correo institucional.
             </p>
           </div>
-          <span className="text-xs text-slate-400 font-mono">Total: {mockStudents.length} registros</span>
+
+          {/* Search bar */}
+          <div className="relative w-full sm:w-72">
+            <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+            <input
+              type="text"
+              placeholder="Buscar por nombre o correo..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full rounded-xl border border-slate-200 pl-9 pr-3 py-1.5 text-xs focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100"
+            />
+          </div>
         </div>
 
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs">
             <thead className="bg-slate-50 text-slate-600 font-semibold border-b border-slate-200">
               <tr>
-                <th className="p-3 sm:p-4">Estudiante</th>
-                <th className="p-3 sm:p-4">Correo Institucional</th>
-                <th className="p-3 sm:p-4">Puntaje</th>
+                <th className="p-3 sm:p-4">#</th>
+                <th className="p-3 sm:p-4">Apellidos y Nombres</th>
+                <th className="p-3 sm:p-4">Correo Institucional (@estudiante.ugm.cl)</th>
+                <th className="p-3 sm:p-4">Carrera</th>
                 <th className="p-3 sm:p-4">Estado</th>
-                <th className="p-3 sm:p-4">Última Actividad</th>
+                <th className="p-3 sm:p-4 text-center">Acciones</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100 text-slate-700 font-mono">
-              {mockStudents.map((st, i) => (
-                <tr key={i} className="hover:bg-slate-50/60 transition">
-                  <td className="p-3 sm:p-4 font-sans font-semibold text-slate-900">{st.name}</td>
-                  <td className="p-3 sm:p-4 text-slate-500">{st.email}</td>
-                  <td className="p-3 sm:p-4 font-bold text-indigo-600">{st.score} pts</td>
+            <tbody className="divide-y divide-slate-100 text-slate-700">
+              {filteredStudents.map((st, i) => (
+                <tr key={st.id} className="hover:bg-slate-50/70 transition">
+                  <td className="p-3 sm:p-4 text-slate-400 font-mono text-[11px]">{i + 1}</td>
+                  <td className="p-3 sm:p-4 font-semibold text-slate-900">{st.fullName}</td>
+                  <td className="p-3 sm:p-4 font-mono text-slate-600">{st.email}</td>
+                  <td className="p-3 sm:p-4 text-slate-500">{st.career}</td>
                   <td className="p-3 sm:p-4">
-                    <span
-                      className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold font-sans ${
-                        st.status === 'Completado'
-                          ? 'bg-emerald-100 text-emerald-800'
-                          : 'bg-amber-100 text-amber-800'
-                      }`}
-                    >
+                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-100 text-emerald-800">
                       {st.status}
                     </span>
                   </td>
-                  <td className="p-3 sm:p-4 text-slate-400 font-sans text-[11px]">{st.time}</td>
+                  <td className="p-3 sm:p-4 text-center">
+                    <button
+                      onClick={() => {
+                        if (confirm(`¿Estás seguro de desmatricular a ${st.fullName}?`)) {
+                          removeStudent(st.id);
+                        }
+                      }}
+                      className="text-slate-400 hover:text-red-600 p-1 rounded hover:bg-red-50 transition"
+                      title="Eliminar de la nómina"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </td>
                 </tr>
               ))}
+              {filteredStudents.length === 0 && (
+                <tr>
+                  <td colSpan={6} className="text-center py-8 text-slate-400">
+                    No se encontraron alumnos que coincidan con la búsqueda.
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
         </div>
       </div>
+
+      {/* Add Student Modal */}
+      {isAddModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <div className="relative w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl border border-slate-100">
+            <button
+              onClick={() => setIsAddModalOpen(false)}
+              className="absolute right-4 top-4 text-slate-400 hover:text-slate-600 p-1"
+            >
+              <X className="h-5 w-5" />
+            </button>
+
+            <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2 mb-4">
+              <UserPlus className="h-5 w-5 text-blue-600" />
+              <span>Matricular Nuevo Alumno</span>
+            </h3>
+
+            <form onSubmit={handleAddSubmit} className="space-y-3 text-xs">
+              <div>
+                <label className="block font-semibold text-slate-700 mb-1">Apellidos</label>
+                <input
+                  type="text"
+                  placeholder="Ej: PÉREZ ROJAS"
+                  value={newLastName}
+                  onChange={(e) => setNewLastName(e.target.value)}
+                  className="w-full rounded-xl border border-slate-200 p-2.5 text-xs focus:border-blue-500 focus:outline-none"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block font-semibold text-slate-700 mb-1">Nombres</label>
+                <input
+                  type="text"
+                  placeholder="Ej: JUAN PABLO"
+                  value={newFirstName}
+                  onChange={(e) => setNewFirstName(e.target.value)}
+                  className="w-full rounded-xl border border-slate-200 p-2.5 text-xs focus:border-blue-500 focus:outline-none"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block font-semibold text-slate-700 mb-1">
+                  Correo Institucional (@estudiante.ugm.cl)
+                </label>
+                <input
+                  type="email"
+                  placeholder="juan.perez@estudiante.ugm.cl"
+                  value={newEmail}
+                  onChange={(e) => setNewEmail(e.target.value)}
+                  className="w-full rounded-xl border border-slate-200 p-2.5 text-xs focus:border-blue-500 focus:outline-none"
+                  required
+                />
+              </div>
+
+              <div className="pt-2 flex justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setIsAddModalOpen(false)}
+                  className="px-4 py-2 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 rounded-xl bg-blue-600 text-white font-semibold hover:bg-blue-700 shadow-md"
+                >
+                  Guardar en Nómina
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
