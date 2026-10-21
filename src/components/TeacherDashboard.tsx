@@ -46,12 +46,19 @@ export const TeacherDashboard: React.FC = () => {
   const [newFirstName, setNewFirstName] = useState('');
   const [newEmail, setNewEmail] = useState('');
 
-  // Calculate average XP
-  const totalXp = studentsList.reduce((acc, s) => acc + (s.xp || 0), 0);
-  const avgXp = Math.round(totalXp / (studentsList.length || 1));
+  // Calculate average XP and ensure active student's XP is reflected in real-time
+  const syncedStudents = studentsList.map((st) => {
+    if (user && user.role === 'student' && user.email.toLowerCase() === st.email.toLowerCase()) {
+      return { ...st, xp: Math.max(user.xp, st.xp || 0) };
+    }
+    return st;
+  });
+
+  const totalXp = syncedStudents.reduce((acc, s) => acc + (s.xp || 0), 0);
+  const avgXp = Math.round(totalXp / (syncedStudents.length || 1));
 
   // Sort students by XP descending
-  const sortedStudents = [...studentsList].sort((a, b) => (b.xp || 0) - (a.xp || 0));
+  const sortedStudents = [...syncedStudents].sort((a, b) => (b.xp || 0) - (a.xp || 0));
 
   const filteredStudents = sortedStudents.filter(
     (s) =>

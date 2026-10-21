@@ -45,19 +45,65 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [publishedClasses, setPublishedClasses] = useState<string[]>(['clase1', 'clase2']);
 
   useEffect(() => {
-    // 1. Load Students
-    const savedStudents = localStorage.getItem('aula_bdd_students');
-    if (savedStudents) {
+    // 1. Load active user first if exists
+    let activeUser: UserProfile | null = null;
+    const savedUser = localStorage.getItem('aula_bdd_user');
+    if (savedUser) {
       try {
-        setStudentsList(JSON.parse(savedStudents));
+        activeUser = JSON.parse(savedUser);
+        setUser(activeUser);
       } catch {
-        setStudentsList(INITIAL_STUDENTS);
+        localStorage.removeItem('aula_bdd_user');
       }
     } else {
-      localStorage.setItem('aula_bdd_students', JSON.stringify(INITIAL_STUDENTS));
+      setUser(DEFAULT_TEACHER);
+      localStorage.setItem('aula_bdd_user', JSON.stringify(DEFAULT_TEACHER));
+      activeUser = DEFAULT_TEACHER;
     }
 
-    // 2. Load Published Classes (Teacher release controller)
+    // 2. Load and migrate students with real XP synchronization
+    const savedStudents = localStorage.getItem('aula_bdd_students');
+    let loadedStudents: StudentUser[] = INITIAL_STUDENTS;
+
+    if (savedStudents) {
+      try {
+        const parsed: StudentUser[] = JSON.parse(savedStudents);
+        // Ensure all students have their XP properly populated from INITIAL_STUDENTS or active user
+        loadedStudents = INITIAL_STUDENTS.map((initSt) => {
+          const found = parsed.find((p) => p.email.toLowerCase() === initSt.email.toLowerCase());
+          const currentXp = (found && typeof found.xp === 'number' && found.xp > 0) 
+            ? found.xp 
+            : initSt.xp;
+
+          // If this student is the active user, take active user's XP
+          const finalXp = (activeUser && activeUser.role === 'student' && activeUser.email.toLowerCase() === initSt.email.toLowerCase())
+            ? Math.max(activeUser.xp, currentXp)
+            : currentXp;
+
+          return {
+            ...initSt,
+            ...(found || {}),
+            xp: finalXp,
+            defaultPassword: found?.defaultPassword || initSt.defaultPassword || getFirstName(initSt.firstName),
+            status: found?.status || initSt.status || 'Activo'
+          };
+        });
+
+        // Add any newly created students that weren't in INITIAL_STUDENTS
+        parsed.forEach((p) => {
+          if (!loadedStudents.some((l) => l.email.toLowerCase() === p.email.toLowerCase())) {
+            loadedStudents.push(p);
+          }
+        });
+      } catch {
+        loadedStudents = INITIAL_STUDENTS;
+      }
+    }
+
+    setStudentsList(loadedStudents);
+    localStorage.setItem('aula_bdd_students', JSON.stringify(loadedStudents));
+
+    // 3. Load Published Classes
     const savedPublished = localStorage.getItem('aula_bdd_published_classes');
     if (savedPublished) {
       try {
@@ -67,19 +113,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     } else {
       localStorage.setItem('aula_bdd_published_classes', JSON.stringify(['clase1', 'clase2']));
-    }
-
-    // 3. Load Active User
-    const savedUser = localStorage.getItem('aula_bdd_user');
-    if (savedUser) {
-      try {
-        setUser(JSON.parse(savedUser));
-      } catch {
-        localStorage.removeItem('aula_bdd_user');
-      }
-    } else {
-      setUser(DEFAULT_TEACHER);
-      localStorage.setItem('aula_bdd_user', JSON.stringify(DEFAULT_TEACHER));
     }
   }, []);
 
@@ -92,8 +125,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const isCurrentlyPublished = publishedClasses.includes(classId);
     let updated: string[];
     if (isCurrentlyPublished) {
-      // Don't unpublish clase1 as base
-      if (classId === 'clase1') return;
+      if (classId === 'clase1') return; // keep class 1 base
       updated = publishedClasses.filter((id) => id !== classId);
     } else {
       updated = [...publishedClasses, classId];
@@ -146,6 +178,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       };
     }
 
+    const currentXp = typeof student.xp === 'number' && student.xp > 0 ? student.xp : 100;
+
     const studentProfile: UserProfile = {
       name: student.fullName,
       email: student.email,
@@ -153,7 +187,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       role: 'student',
       career: student.career,
       university: 'Universidad Gabriela Mistral',
-      xp: 100,
+      xp: currentXp,
       completedActivities: []
     };
 
@@ -183,13 +217,32 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (!user) return;
     if (user.completedActivities.includes(activityId)) return;
 
+    const newXp = (user.xp || 0) + points;
+    const newCompleted = [...user.completedActivities, activityId];
+
     const updatedUser: UserProfile = {
       ...user,
-      xp: user.xp + points,
-      completedActivities: [...user.completedActivities, activityId]
+      xp: newXp,
+      completedActivities: newCompleted
     };
     setUser(updatedUser);
     localStorage.setItem('aula_bdd_user', JSON.stringify(updatedUser));
+
+    // Real-time synchronization with studentsList in localStorage!
+    if (user.role === 'student') {
+      const updatedStudents = studentsList.map((st) => {
+        if (st.email.toLowerCase() === user.email.toLowerCase()) {
+          return {
+            ...st,
+            xp: newXp,
+            completedCount: (st.completedCount || 0) + 1
+          };
+        }
+        return st;
+      });
+      setStudentsList(updatedStudents);
+      localStorage.setItem('aula_bdd_students', JSON.stringify(updatedStudents));
+    }
   };
 
   const addStudent = (studentData: Omit<StudentUser, 'id' | 'defaultPassword'>) => {
@@ -197,7 +250,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const newStudent: StudentUser = {
       ...studentData,
       id: Date.now().toString(),
-      defaultPassword: firstNameClean
+      defaultPassword: firstNameClean,
+      xp: studentData.xp || 100,
+      completedCount: studentData.completedCount || 0
     };
     const updated = [newStudent, ...studentsList];
     saveStudents(updated);
