@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { Navbar } from '@/components/Navbar';
+import { LoginPage } from '@/components/LoginPage';
 import { ExcelVsDbLab } from '@/components/ExcelVsDbLab';
 import { DataTypesTrainer } from '@/components/DataTypesTrainer';
 import { FlashcardsQuiz } from '@/components/FlashcardsQuiz';
@@ -15,7 +16,7 @@ import { Class6View } from '@/components/class6/Class6View';
 import { Class7View } from '@/components/class7/Class7View';
 import { TeacherDashboard } from '@/components/TeacherDashboard';
 import { useAuth } from '@/context/AuthContext';
-import { ALL_COURSE_CLASSES } from '@/data/courseConfig';
+import { UgmLogo } from '@/components/UgmLogo';
 import { 
   Grid, 
   Binary, 
@@ -37,19 +38,24 @@ export default function Home() {
   // Sub-tabs for Class 1
   const [class1SubTab, setClass1SubTab] = useState<'excel' | 'types' | 'flashcards'>('excel');
 
-  // Sub-tabs for Class 2 (Option 4 Taller Evaluativo removed as requested)
+  // Sub-tabs for Class 2
   const [class2SubTab, setClass2SubTab] = useState<'canvas' | 'requirements' | 'sdlc'>('canvas');
 
   // State explanation popover
   const [showStatusHelp, setShowStatusHelp] = useState(false);
 
+  // If user is not logged in, immediately show the dedicated Login Page!
+  if (!user) {
+    return <LoginPage />;
+  }
+
   // Compute progress for class 1
   const class1TotalActivities = 3;
-  const class1Completed = user?.completedActivities.filter(a => a.startsWith('act-') || a.startsWith('card-')).length || 0;
+  const class1Completed = user.completedActivities.filter(a => a.startsWith('act-') || a.startsWith('card-')).length || 0;
   const class1Percentage = Math.min(100, Math.round((class1Completed / class1TotalActivities) * 100));
 
   const isCurrentClassPublished = publishedClasses.includes(activeMainTab);
-  const isTeacher = user?.role === 'teacher';
+  const isTeacher = user.role === 'teacher';
 
   return (
     <div className="min-h-screen flex flex-col bg-slate-50 text-slate-900">
@@ -128,7 +134,7 @@ export default function Home() {
 
                   <div className="mt-1 flex items-center justify-center gap-1 text-[11px] text-amber-700 font-semibold bg-amber-100/70 rounded-full px-2 py-0.5">
                     <Sparkles className="h-3 w-3 text-amber-500 fill-amber-500" />
-                    <span>{user ? `${user.xp} XP acumulados` : '0 XP'}</span>
+                    <span>{user.xp} XP acumulados</span>
                   </div>
 
                   {showStatusHelp && (
@@ -198,7 +204,7 @@ export default function Home() {
         )}
 
         {/* ========================================================= */}
-        {/* CLASE 2 VIEW (Sin Taller Evaluativo como solicitado)       */}
+        {/* CLASE 2 VIEW                                              */}
         {/* ========================================================= */}
         {activeMainTab === 'clase2' && (isCurrentClassPublished || isTeacher) && (
           <div className="space-y-6">
@@ -219,7 +225,7 @@ export default function Home() {
                 </p>
               </div>
 
-              {/* Sub-tabs within Class 2 (Notice option 4 workshop removed) */}
+              {/* Sub-tabs within Class 2 */}
               <div className="flex items-center gap-2 border-t border-slate-100 pt-5 mt-6 overflow-x-auto pb-1">
                 <button
                   onClick={() => setClass2SubTab('canvas')}
@@ -316,7 +322,7 @@ export default function Home() {
               </div>
               <h3 className="text-lg font-bold text-red-900">Acceso Restringido</h3>
               <p className="text-xs text-red-700 leading-relaxed">
-                Esta sección es de uso exclusivo para el docente de la cátedra (<strong>Mag. Cristian Correa Pacheco</strong>). Tu cuenta actual ({user?.email}) tiene perfil de <strong>Alumno</strong>.
+                Esta sección es de uso exclusivo para el docente de la cátedra (<strong>Mag. Cristian Correa Pacheco</strong>). Tu cuenta actual ({user.email}) tiene perfil de <strong>Alumno</strong>.
               </p>
               <button
                 onClick={() => setActiveMainTab('clase1')}
@@ -329,17 +335,17 @@ export default function Home() {
         )}
       </main>
 
-      {/* Footer */}
+      {/* Footer with UGM branding */}
       <footer className="border-t border-slate-200 bg-white py-6 mt-12 text-slate-500 text-xs">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-4">
-          <div className="flex items-center gap-2">
-            <School className="h-4 w-4 text-blue-600" />
-            <span className="font-semibold text-slate-800">Universidad Gabriela Mistral</span>
+          <div className="flex items-center gap-2.5">
+            <UgmLogo variant="shield" size={24} />
+            <span className="font-bold text-[#0F2B5C]">Universidad Gabriela Mistral</span>
             <span>•</span>
             <span>Ingeniería en Computación e Informática</span>
           </div>
           <div>
-            <span>Docente Cátedra: <strong>Mag. Cristian Correa Pacheco</strong> ({user?.email})</span>
+            <span>Docente Cátedra: <strong>Mag. Cristian Correa Pacheco</strong> ({user.email})</span>
           </div>
         </div>
       </footer>
