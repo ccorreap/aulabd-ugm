@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { AuthModal } from './AuthModal';
+import { ALL_COURSE_CLASSES } from '@/data/courseConfig';
 import { 
   Database, 
   GraduationCap, 
@@ -10,19 +11,26 @@ import {
   Sparkles, 
   UserCircle2, 
   BookOpen,
-  FolderGit2,
-  HelpCircle
+  HelpCircle,
+  EyeOff
 } from 'lucide-react';
 
 interface NavbarProps {
-  activeTab: 'clase1' | 'clase2' | 'docente';
-  setActiveTab: (tab: 'clase1' | 'clase2' | 'docente') => void;
+  activeTab: string;
+  setActiveTab: (tab: string) => void;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab }) => {
-  const { user, logout } = useAuth();
+  const { user, logout, publishedClasses } = useAuth();
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [showXpHelp, setShowXpHelp] = useState(false);
+
+  // For students: ONLY classes in publishedClasses are visible
+  // For teacher: can see all classes or published ones
+  const visibleClasses = ALL_COURSE_CLASSES.filter((cls) => {
+    if (user?.role === 'teacher') return true; // Teacher can see all
+    return publishedClasses.includes(cls.id); // Student only sees published
+  });
 
   return (
     <>
@@ -40,7 +48,7 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab }) => {
                     AulaBD <span className="text-blue-600">UGM</span>
                   </span>
                   <span className="hidden sm:inline-block rounded-md bg-blue-50 px-2 py-0.5 text-[11px] font-semibold text-blue-700 border border-blue-200/60">
-                    Cátedra Nº 2 y 3
+                    Cátedra de Base de Datos
                   </span>
                 </div>
                 <p className="text-[11px] text-slate-500 hidden md:block">
@@ -49,43 +57,43 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab }) => {
               </div>
             </div>
 
-            {/* Navigation Tabs (Clase 1, Clase 2, Panel Docente) */}
-            <nav className="flex items-center gap-1 sm:gap-2">
-              <button
-                onClick={() => setActiveTab('clase1')}
-                className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs sm:text-sm font-medium transition ${
-                  activeTab === 'clase1'
-                    ? 'bg-blue-600 text-white shadow-sm'
-                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
-                }`}
-              >
-                <BookOpen className="h-4 w-4" />
-                <span>Clase 1</span>
-              </button>
+            {/* Navigation Tabs (Dynamic based on teacher's publication status) */}
+            <nav className="flex items-center gap-1 sm:gap-1.5 overflow-x-auto py-1">
+              {visibleClasses.map((cls) => {
+                const isActive = activeTab === cls.id;
+                const isPublished = publishedClasses.includes(cls.id);
 
-              <button
-                onClick={() => setActiveTab('clase2')}
-                className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs sm:text-sm font-medium transition ${
-                  activeTab === 'clase2'
-                    ? 'bg-blue-600 text-white shadow-sm'
-                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
-                }`}
-              >
-                <FolderGit2 className="h-4 w-4" />
-                <span>Clase 2</span>
-              </button>
+                return (
+                  <button
+                    key={cls.id}
+                    onClick={() => setActiveTab(cls.id)}
+                    className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold transition shrink-0 ${
+                      isActive
+                        ? 'bg-blue-600 text-white shadow-sm'
+                        : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+                    }`}
+                  >
+                    <span>{cls.shortTitle}</span>
+                    {user?.role === 'teacher' && !isPublished && (
+                      <span className="text-[9px] bg-amber-100 text-amber-800 px-1 py-0.2 rounded font-mono">
+                        Oculta
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
 
               {user?.role === 'teacher' && (
                 <button
                   onClick={() => setActiveTab('docente')}
-                  className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs sm:text-sm font-medium transition ${
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition shrink-0 ${
                     activeTab === 'docente'
-                      ? 'bg-indigo-600 text-white shadow-sm'
-                      : 'text-indigo-600 hover:text-indigo-800 hover:bg-indigo-50'
+                      ? 'bg-purple-600 text-white shadow-sm'
+                      : 'text-purple-700 hover:text-purple-900 hover:bg-purple-50'
                   }`}
                 >
                   <GraduationCap className="h-4 w-4" />
-                  <span>Panel Docente y Nómina</span>
+                  <span>Panel Docente</span>
                 </button>
               )}
             </nav>

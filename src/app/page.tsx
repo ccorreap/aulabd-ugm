@@ -8,9 +8,14 @@ import { FlashcardsQuiz } from '@/components/FlashcardsQuiz';
 import { CanvasExplorer } from '@/components/class2/CanvasExplorer';
 import { RequirementsTrainer } from '@/components/class2/RequirementsTrainer';
 import { SdlcSimulator } from '@/components/class2/SdlcSimulator';
-import { WorkshopGuide } from '@/components/class2/WorkshopGuide';
+import { Class3View } from '@/components/class3/Class3View';
+import { Class4View } from '@/components/class4/Class4View';
+import { Class5View } from '@/components/class5/Class5View';
+import { Class6View } from '@/components/class6/Class6View';
+import { Class7View } from '@/components/class7/Class7View';
 import { TeacherDashboard } from '@/components/TeacherDashboard';
 import { useAuth } from '@/context/AuthContext';
+import { ALL_COURSE_CLASSES } from '@/data/courseConfig';
 import { 
   Grid, 
   Binary, 
@@ -21,18 +26,19 @@ import {
   Tv,
   CheckCircle,
   Layers,
-  Award
+  Lock,
+  EyeOff
 } from 'lucide-react';
 
 export default function Home() {
-  const { user } = useAuth();
-  const [activeMainTab, setActiveMainTab] = useState<'clase1' | 'clase2' | 'docente'>('clase1');
+  const { user, publishedClasses } = useAuth();
+  const [activeMainTab, setActiveMainTab] = useState<string>('clase1');
   
-  // Sub-tabs for Class 1 (Notice point 4 removed as requested)
+  // Sub-tabs for Class 1
   const [class1SubTab, setClass1SubTab] = useState<'excel' | 'types' | 'flashcards'>('excel');
 
-  // Sub-tabs for Class 2 (Catedra 3)
-  const [class2SubTab, setClass2SubTab] = useState<'canvas' | 'requirements' | 'sdlc' | 'workshop'>('canvas');
+  // Sub-tabs for Class 2 (Option 4 Taller Evaluativo removed as requested)
+  const [class2SubTab, setClass2SubTab] = useState<'canvas' | 'requirements' | 'sdlc'>('canvas');
 
   // State explanation popover
   const [showStatusHelp, setShowStatusHelp] = useState(false);
@@ -42,17 +48,50 @@ export default function Home() {
   const class1Completed = user?.completedActivities.filter(a => a.startsWith('act-') || a.startsWith('card-')).length || 0;
   const class1Percentage = Math.min(100, Math.round((class1Completed / class1TotalActivities) * 100));
 
+  const isCurrentClassPublished = publishedClasses.includes(activeMainTab);
+  const isTeacher = user?.role === 'teacher';
+
   return (
     <div className="min-h-screen flex flex-col bg-slate-50 text-slate-900">
       <Navbar activeTab={activeMainTab} setActiveTab={setActiveMainTab} />
 
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        {/* If student tries to see an unpublished class */}
+        {activeMainTab !== 'docente' && !isCurrentClassPublished && !isTeacher && (
+          <div className="rounded-2xl border border-slate-200 bg-white p-12 text-center max-w-md mx-auto space-y-3">
+            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-amber-100 text-amber-700">
+              <Lock className="h-7 w-7" />
+            </div>
+            <h3 className="text-xl font-bold text-slate-900">Clase aún no liberada</h3>
+            <p className="text-xs text-slate-500 leading-relaxed">
+              El docente <strong>Mag. Cristian Correa Pacheco</strong> habilitará esta clase una vez realizada la sesión presencial de la cátedra.
+            </p>
+            <button
+              onClick={() => setActiveMainTab('clase1')}
+              className="mt-2 px-4 py-2 rounded-xl bg-blue-600 text-white text-xs font-semibold hover:bg-blue-700 transition"
+            >
+              Ir a Clase 1
+            </button>
+          </div>
+        )}
+
+        {/* Banner if teacher is previewing an unpublished class */}
+        {activeMainTab !== 'docente' && !isCurrentClassPublished && isTeacher && (
+          <div className="mb-4 rounded-xl border border-amber-300 bg-amber-50 p-3 flex items-center justify-between text-xs text-amber-900">
+            <div className="flex items-center gap-2">
+              <EyeOff className="h-4 w-4 text-amber-700" />
+              <span>
+                <strong>Modo Vista Previa Docente:</strong> Esta clase está oculta actualmente para los alumnos. Puedes liberarla en cualquier momento desde el Panel Docente.
+              </span>
+            </div>
+          </div>
+        )}
+
         {/* ========================================================= */}
         {/* CLASE 1 VIEW                                              */}
         {/* ========================================================= */}
-        {activeMainTab === 'clase1' && (
+        {activeMainTab === 'clase1' && (isCurrentClassPublished || isTeacher) && (
           <div className="space-y-6">
-            {/* Class 1 Hero Header */}
             <div className="rounded-2xl border border-slate-200 bg-white p-6 sm:p-8 shadow-sm">
               <div className="flex flex-wrap items-center justify-between gap-4">
                 <div className="space-y-1.5">
@@ -70,7 +109,7 @@ export default function Home() {
                   </p>
                 </div>
 
-                {/* Status Box with clear explanation */}
+                {/* Status Box */}
                 <div className="relative rounded-2xl bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200/60 p-4 text-center min-w-[220px]">
                   <div className="flex items-center justify-center gap-1 text-xs font-semibold text-blue-700">
                     <span>Tu Progreso en Clase 1</span>
@@ -109,7 +148,7 @@ export default function Home() {
                 </div>
               </div>
 
-              {/* Sub-tabs within Class 1 (Points 1, 2, 3 only) */}
+              {/* Sub-tabs within Class 1 */}
               <div className="flex items-center gap-2 border-t border-slate-100 pt-5 mt-6 overflow-x-auto pb-1">
                 <button
                   onClick={() => setClass1SubTab('excel')}
@@ -159,44 +198,28 @@ export default function Home() {
         )}
 
         {/* ========================================================= */}
-        {/* CLASE 2 VIEW                                              */}
+        {/* CLASE 2 VIEW (Sin Taller Evaluativo como solicitado)       */}
         {/* ========================================================= */}
-        {activeMainTab === 'clase2' && (
+        {activeMainTab === 'clase2' && (isCurrentClassPublished || isTeacher) && (
           <div className="space-y-6">
-            {/* Class 2 Hero Header */}
             <div className="rounded-2xl border border-slate-200 bg-white p-6 sm:p-8 shadow-sm">
-              <div className="flex flex-wrap items-center justify-between gap-4">
-                <div className="space-y-1.5">
-                  <div className="flex items-center gap-2">
-                    <span className="rounded-md bg-indigo-100 px-2.5 py-1 text-xs font-bold text-indigo-800">
-                      Unidad 1 • Cátedra Nº 3
-                    </span>
-                    <span className="text-xs text-slate-400">Semana 2</span>
-                  </div>
-                  <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
-                    Clase 2: Fundamentos de Sistemas de Información, Modelos y Requerimientos TI
-                  </h1>
-                  <p className="text-sm text-slate-600 max-w-3xl leading-relaxed">
-                    Aprende a conectar el modelo de negocio con la arquitectura de datos: los 9 bloques del Canvas (Caso Netflix),
-                    el ciclo de vida SDLC de 7 etapas, la diferencia entre Cascada y Scrum, y el levantamiento de Requerimientos Funcionales y No Funcionales para tu taller evaluativo.
-                  </p>
-                </div>
-
-                {/* Workshop Alert Badge */}
-                <div className="rounded-2xl bg-amber-50 border border-amber-200 p-4 text-center min-w-[220px]">
-                  <span className="text-xs font-bold text-amber-800 uppercase tracking-wider">
-                    Taller Evaluativo (20%)
+              <div className="space-y-1.5">
+                <div className="flex items-center gap-2">
+                  <span className="rounded-md bg-indigo-100 px-2.5 py-1 text-xs font-bold text-indigo-800">
+                    Unidad 1 • Cátedra Nº 3
                   </span>
-                  <p className="text-base font-extrabold text-slate-900 mt-0.5">
-                    Entrega: 28 de Marzo
-                  </p>
-                  <p className="text-[11px] text-amber-700 mt-1">
-                    5 Req. Funcionales + 5 No Funcionales
-                  </p>
+                  <span className="text-xs text-slate-400">Semana 2</span>
                 </div>
+                <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
+                  Clase 2: Fundamentos de Sistemas de Información, Modelos y Requerimientos TI
+                </h1>
+                <p className="text-sm text-slate-600 max-w-3xl leading-relaxed">
+                  Aprende a conectar el modelo de negocio con la arquitectura de datos: los 9 bloques del Canvas (Caso Netflix),
+                  el ciclo de vida SDLC de 7 etapas, la diferencia entre Cascada y Scrum, y el levantamiento de Requerimientos Funcionales y No Funcionales.
+                </p>
               </div>
 
-              {/* Sub-tabs within Class 2 */}
+              {/* Sub-tabs within Class 2 (Notice option 4 workshop removed) */}
               <div className="flex items-center gap-2 border-t border-slate-100 pt-5 mt-6 overflow-x-auto pb-1">
                 <button
                   onClick={() => setClass2SubTab('canvas')}
@@ -233,18 +256,6 @@ export default function Home() {
                   <Layers className="h-4 w-4" />
                   <span>3. Ciclo de Vida (SDLC) & Cascada vs Scrum</span>
                 </button>
-
-                <button
-                  onClick={() => setClass2SubTab('workshop')}
-                  className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs sm:text-sm font-semibold transition shrink-0 ${
-                    class2SubTab === 'workshop'
-                      ? 'bg-amber-600 text-white shadow-md shadow-amber-500/20'
-                      : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
-                  }`}
-                >
-                  <Award className="h-4 w-4" />
-                  <span>4. Guía Taller Evaluativo (20%) y Rúbrica</span>
-                </button>
               </div>
             </div>
 
@@ -253,16 +264,50 @@ export default function Home() {
               {class2SubTab === 'canvas' && <CanvasExplorer />}
               {class2SubTab === 'requirements' && <RequirementsTrainer />}
               {class2SubTab === 'sdlc' && <SdlcSimulator />}
-              {class2SubTab === 'workshop' && <WorkshopGuide />}
             </div>
           </div>
+        )}
+
+        {/* ========================================================= */}
+        {/* CLASE 3 VIEW                                              */}
+        {/* ========================================================= */}
+        {activeMainTab === 'clase3' && (isCurrentClassPublished || isTeacher) && (
+          <Class3View />
+        )}
+
+        {/* ========================================================= */}
+        {/* CLASE 4 VIEW                                              */}
+        {/* ========================================================= */}
+        {activeMainTab === 'clase4' && (isCurrentClassPublished || isTeacher) && (
+          <Class4View />
+        )}
+
+        {/* ========================================================= */}
+        {/* CLASE 5 VIEW                                              */}
+        {/* ========================================================= */}
+        {activeMainTab === 'clase5' && (isCurrentClassPublished || isTeacher) && (
+          <Class5View />
+        )}
+
+        {/* ========================================================= */}
+        {/* CLASE 6 VIEW                                              */}
+        {/* ========================================================= */}
+        {activeMainTab === 'clase6' && (isCurrentClassPublished || isTeacher) && (
+          <Class6View />
+        )}
+
+        {/* ========================================================= */}
+        {/* CLASE 7 VIEW                                              */}
+        {/* ========================================================= */}
+        {activeMainTab === 'clase7' && (isCurrentClassPublished || isTeacher) && (
+          <Class7View />
         )}
 
         {/* ========================================================= */}
         {/* PANEL DOCENTE VIEW (Con perfilamiento estricto)           */}
         {/* ========================================================= */}
         {activeMainTab === 'docente' && (
-          user?.role === 'teacher' ? (
+          isTeacher ? (
             <TeacherDashboard />
           ) : (
             <div className="rounded-2xl border border-red-200 bg-red-50 p-8 text-center max-w-lg mx-auto space-y-3">
@@ -271,7 +316,7 @@ export default function Home() {
               </div>
               <h3 className="text-lg font-bold text-red-900">Acceso Restringido</h3>
               <p className="text-xs text-red-700 leading-relaxed">
-                Esta sección es de uso exclusivo para el docente de la cátedra (<strong>Mag. Cristian Correa Pacheco</strong>). Tu cuenta actual ({user?.email}) tiene perfil de <strong>Alumno</strong> y no posee permisos administrativos.
+                Esta sección es de uso exclusivo para el docente de la cátedra (<strong>Mag. Cristian Correa Pacheco</strong>). Tu cuenta actual ({user?.email}) tiene perfil de <strong>Alumno</strong>.
               </p>
               <button
                 onClick={() => setActiveMainTab('clase1')}
