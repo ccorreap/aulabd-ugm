@@ -32,7 +32,7 @@ import {
 } from 'lucide-react';
 
 export default function Home() {
-  const { user, publishedClasses } = useAuth();
+  const { user, publishedClasses, isLoading } = useAuth();
   const [activeMainTab, setActiveMainTab] = useState<string>('clase1');
   
   // Sub-tabs for Class 1
@@ -43,6 +43,18 @@ export default function Home() {
 
   // State explanation popover
   const [showStatusHelp, setShowStatusHelp] = useState(false);
+
+  // Loading state while checking session
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex flex-col justify-center items-center bg-gradient-to-br from-slate-900 via-[#0F2B5C] to-slate-950 text-white">
+        <UgmLogo variant="shield" size={64} />
+        <p className="mt-4 text-xs font-semibold text-slate-300 animate-pulse">
+          Cargando Aula Virtual UGM...
+        </p>
+      </div>
+    );
+  }
 
   // If user is not logged in, immediately show the dedicated Login Page!
   if (!user) {

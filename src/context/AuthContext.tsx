@@ -13,6 +13,7 @@ import { ALL_COURSE_CLASSES } from '@/data/courseConfig';
 
 interface AuthContextType {
   user: UserProfile | null;
+  isLoading: boolean;
   studentsList: StudentUser[];
   publishedClasses: string[];
   login: (email: string, password: string) => { success: boolean; error?: string };
@@ -41,11 +42,12 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<UserProfile | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
   const [studentsList, setStudentsList] = useState<StudentUser[]>(INITIAL_STUDENTS);
   const [publishedClasses, setPublishedClasses] = useState<string[]>(['clase1', 'clase2']);
 
   useEffect(() => {
-    // 1. Load active user first if exists
+    // 1. Load active user first if exists (NO auto-login, must pass through login screen)
     let activeUser: UserProfile | null = null;
     const savedUser = localStorage.getItem('aula_bdd_user');
     if (savedUser) {
@@ -54,11 +56,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setUser(activeUser);
       } catch {
         localStorage.removeItem('aula_bdd_user');
+        setUser(null);
       }
     } else {
-      setUser(DEFAULT_TEACHER);
-      localStorage.setItem('aula_bdd_user', JSON.stringify(DEFAULT_TEACHER));
-      activeUser = DEFAULT_TEACHER;
+      setUser(null);
+      activeUser = null;
     }
 
     // 2. Load and migrate students with real XP synchronization
@@ -114,6 +116,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } else {
       localStorage.setItem('aula_bdd_published_classes', JSON.stringify(['clase1', 'clase2']));
     }
+
+    setIsLoading(false);
   }, []);
 
   const saveStudents = (newStudents: StudentUser[]) => {
@@ -272,6 +276,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     <AuthContext.Provider
       value={{
         user,
+        isLoading,
         studentsList,
         publishedClasses,
         login,
