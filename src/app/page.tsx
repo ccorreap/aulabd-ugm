@@ -259,9 +259,29 @@ export default function Home() {
         )}
 
         {/* ========================================================= */}
-        {/* PANEL DOCENTE VIEW                                        */}
+        {/* PANEL DOCENTE VIEW (Con perfilamiento estricto)           */}
         {/* ========================================================= */}
-        {activeMainTab === 'docente' && <TeacherDashboard />}
+        {activeMainTab === 'docente' && (
+          user?.role === 'teacher' ? (
+            <TeacherDashboard />
+          ) : (
+            <div className="rounded-2xl border border-red-200 bg-red-50 p-8 text-center max-w-lg mx-auto space-y-3">
+              <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-red-100 text-red-600">
+                <School className="h-6 w-6" />
+              </div>
+              <h3 className="text-lg font-bold text-red-900">Acceso Restringido</h3>
+              <p className="text-xs text-red-700 leading-relaxed">
+                Esta sección es de uso exclusivo para el docente de la cátedra (<strong>Mag. Cristian Correa Pacheco</strong>). Tu cuenta actual ({user?.email}) tiene perfil de <strong>Alumno</strong> y no posee permisos administrativos.
+              </p>
+              <button
+                onClick={() => setActiveMainTab('clase1')}
+                className="mt-3 px-4 py-2 rounded-xl bg-red-600 text-white text-xs font-semibold hover:bg-red-700 transition"
+              >
+                Volver a la Clase 1
+              </button>
+            </div>
+          )
+        )}
       </main>
 
       {/* Footer */}

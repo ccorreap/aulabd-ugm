@@ -119,11 +119,22 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab }) => {
                     )}
                   </div>
 
-                  {/* Profile info */}
-                  <div className="text-right hidden lg:block">
-                    <p className="text-xs font-bold text-slate-800 leading-tight">
-                      {user.name}
-                    </p>
+                  {/* Profile info with distinct role styling */}
+                  <div className="text-right hidden sm:block">
+                    <div className="flex items-center justify-end gap-1.5">
+                      <p className="text-xs font-bold text-slate-800 leading-tight">
+                        {user.name}
+                      </p>
+                      <span
+                        className={`text-[9px] font-extrabold uppercase px-1.5 py-0.5 rounded border ${
+                          user.role === 'teacher'
+                            ? 'bg-purple-100 text-purple-800 border-purple-300'
+                            : 'bg-emerald-100 text-emerald-800 border-emerald-300'
+                        }`}
+                      >
+                        {user.role === 'teacher' ? 'Docente' : 'Alumno'}
+                      </span>
+                    </div>
                     <p className="text-[10px] text-slate-400 font-mono">
                       {user.email}
                     </p>

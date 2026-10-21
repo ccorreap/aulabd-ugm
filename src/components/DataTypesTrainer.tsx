@@ -15,7 +15,7 @@ import {
 import confetti from 'canvas-confetti';
 
 export const DataTypesTrainer: React.FC = () => {
-  const { addXp } = useAuth();
+  const { addXp, user } = useAuth();
   const [currentIndex, setCurrentIndex] = useState(0);
   const [selectedOption, setSelectedOption] = useState<string | null>(null);
   const [isAnswered, setIsAnswered] = useState(false);
@@ -79,6 +79,11 @@ export const DataTypesTrainer: React.FC = () => {
           </div>
 
           <div className="flex items-center gap-2">
+            {user?.role === 'teacher' && (
+              <span className="hidden sm:inline-block rounded-full bg-purple-100 text-purple-800 px-3 py-1 text-xs font-bold border border-purple-200">
+                Vista Docente • Pauta: {currentQ.correctAnswer}
+              </span>
+            )}
             <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-slate-100 text-slate-700">
               Pregunta {currentIndex + 1} de {SQL_SERVER_DATA_TYPES_QUESTIONS.length}
             </span>

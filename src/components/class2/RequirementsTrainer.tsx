@@ -7,7 +7,7 @@ import { Sparkles, CheckCircle2, XCircle, ArrowRight, HelpCircle, RotateCcw, Shi
 import confetti from 'canvas-confetti';
 
 export const RequirementsTrainer: React.FC = () => {
-  const { addXp } = useAuth();
+  const { addXp, user } = useAuth();
   const [currentIndex, setCurrentIndex] = useState(0);
   const [selectedAnswer, setSelectedAnswer] = useState<'Funcional' | 'No Funcional' | null>(null);
   const [isAnswered, setIsAnswered] = useState(false);
@@ -65,8 +65,15 @@ export const RequirementsTrainer: React.FC = () => {
             </p>
           </div>
 
-          <div className="text-xs font-semibold px-3 py-1 bg-slate-100 rounded-full text-slate-700">
-            Pregunta {currentIndex + 1} de {REQUIREMENTS_PRACTICE_ITEMS.length}
+          <div className="flex items-center gap-2">
+            {user?.role === 'teacher' && (
+              <span className="hidden sm:inline-block rounded-full bg-purple-100 text-purple-800 px-3 py-1 text-xs font-bold border border-purple-200">
+                Vista Docente • Pauta: {currentItem.type}
+              </span>
+            )}
+            <div className="text-xs font-semibold px-3 py-1 bg-slate-100 rounded-full text-slate-700">
+              Pregunta {currentIndex + 1} de {REQUIREMENTS_PRACTICE_ITEMS.length}
+            </div>
           </div>
         </div>
 
